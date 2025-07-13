@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Camera, Upload, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SkinAnalysis } from "./SkincareWidget";
+import { SkinAnalysis, DetectedCondition } from "./SkincareWidget";
 
 interface PhotoCaptureProps {
   onComplete: (analysis: SkinAnalysis) => void;
@@ -32,23 +32,74 @@ export const PhotoCapture = ({ onComplete }: PhotoCaptureProps) => {
   const analyzePhoto = () => {
     setIsAnalyzing(true);
     
-    // Simulate AI analysis
+    // Enhanced AI analysis simulation
     setTimeout(() => {
       const skinTypes = ["oily", "dry", "combination", "normal", "sensitive"];
       const randomType = skinTypes[Math.floor(Math.random() * skinTypes.length)];
       
       const characteristics = {
-        oily: ["visible pores", "shine in T-zone", "occasional breakouts"],
-        dry: ["tight feeling", "flaky patches", "fine lines"],
-        combination: ["oily T-zone", "dry cheeks", "varied texture"],
-        normal: ["balanced moisture", "smooth texture", "minimal concerns"],
-        sensitive: ["easily irritated", "redness", "reactive to products"]
+        oily: ["enlarged pores", "T-zone shine", "blackheads visible"],
+        dry: ["tight feeling", "flaky patches", "fine lines from dehydration"],
+        combination: ["oily T-zone", "dry cheeks", "mixed texture"],
+        normal: ["balanced moisture", "smooth texture", "even tone"],
+        sensitive: ["mild redness", "reactive skin", "delicate appearance"]
       };
+
+      // Enhanced condition detection
+      const detectedConditions: DetectedCondition[] = [];
+      const skipQuestions: string[] = [];
+
+      // Simulate detection based on skin type
+      if (randomType === "oily") {
+        detectedConditions.push({
+          type: "oily",
+          severity: "moderate",
+          confidence: 85,
+          areas: ["T-zone", "nose", "forehead"]
+        });
+        skipQuestions.push("oily-concern");
+      }
+
+      if (randomType === "dry") {
+        detectedConditions.push({
+          type: "dry",
+          severity: "mild",
+          confidence: 80,
+          areas: ["cheeks", "around eyes"]
+        });
+        skipQuestions.push("dryness-concern");
+      }
+
+      // Randomly detect acne
+      if (Math.random() > 0.6) {
+        const severity = ["mild", "moderate", "severe"][Math.floor(Math.random() * 3)] as "mild" | "moderate" | "severe";
+        detectedConditions.push({
+          type: "acne",
+          severity,
+          confidence: Math.floor(Math.random() * 20) + 75,
+          areas: ["forehead", "chin", "cheeks"].slice(0, Math.floor(Math.random() * 3) + 1)
+        });
+        if (severity !== "mild") {
+          skipQuestions.push("acne-concern");
+        }
+      }
+
+      // Randomly detect sensitivity
+      if (Math.random() > 0.7) {
+        detectedConditions.push({
+          type: "sensitive",
+          severity: "mild",
+          confidence: 70,
+          areas: ["cheeks", "around nose"]
+        });
+      }
 
       const analysis: SkinAnalysis = {
         skinType: randomType,
         confidence: Math.floor(Math.random() * 20) + 80,
-        characteristics: characteristics[randomType as keyof typeof characteristics]
+        characteristics: characteristics[randomType as keyof typeof characteristics],
+        detectedConditions,
+        skipQuestions
       };
 
       setIsAnalyzing(false);

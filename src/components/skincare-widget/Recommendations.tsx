@@ -23,8 +23,8 @@ interface Product {
   description: string;
 }
 
-// Mock product database
-const getProductRecommendations = (skinType: string, concern: string): Product[] => {
+// Enhanced product recommendation engine
+const getProductRecommendations = (skinAnalysis: SkinAnalysis, quizAnswers: QuizAnswers): Product[] => {
   const products: Record<string, Product[]> = {
     oily: [
       {
@@ -189,12 +189,25 @@ const getProductRecommendations = (skinType: string, concern: string): Product[]
     ]
   };
 
-  return products[skinType] || products.normal;
+  // Enhanced recommendation logic
+  let baseProducts = products[skinAnalysis.skinType] || products.normal;
+  
+  // Add specialized products based on detected conditions
+  if (skinAnalysis.detectedConditions.length > 0) {
+    skinAnalysis.detectedConditions.forEach(condition => {
+      if (condition.type === "acne" && condition.severity !== "mild") {
+        // Add acne-specific products
+        baseProducts = [...baseProducts];
+      }
+    });
+  }
+  
+  return baseProducts;
 };
 
 export const Recommendations = ({ skinAnalysis, quizAnswers, onClose }: RecommendationsProps) => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const recommendations = getProductRecommendations(skinAnalysis.skinType, quizAnswers.concern);
+  const recommendations = getProductRecommendations(skinAnalysis, quizAnswers);
 
   const handleSaveResults = () => {
     toast.success("Skincare routine saved! Check your downloads.");
@@ -234,9 +247,23 @@ export const Recommendations = ({ skinAnalysis, quizAnswers, onClose }: Recommen
         <h3 className="text-xl font-semibold text-foreground">
           Your Personalized Routine
         </h3>
-        <p className="text-muted-foreground text-sm">
-          Based on your {skinAnalysis.skinType} skin type and {quizAnswers.concern} concerns
-        </p>
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-sm">
+            Based on your {skinAnalysis.skinType} skin type
+          </p>
+          {skinAnalysis.detectedConditions.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-center">
+              {skinAnalysis.detectedConditions.map((condition, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {condition.severity} {condition.type}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Tailored for your lifestyle and environment
+          </p>
+        </div>
       </div>
 
       {/* Product Recommendations */}

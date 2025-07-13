@@ -9,18 +9,29 @@ import { Progress } from "@/components/ui/progress";
 
 export type WidgetStep = "trigger" | "photo" | "quiz" | "recommendations";
 
+export interface DetectedCondition {
+  type: "acne" | "oily" | "dry" | "sensitive" | "aging";
+  severity: "mild" | "moderate" | "severe";
+  confidence: number;
+  areas: string[];
+}
+
 export interface QuizAnswers {
   diet: string;
   water: string;
   concern: string;
   sleep: string;
   environment?: string;
+  stressLevel?: string;
+  routine?: string;
 }
 
 export interface SkinAnalysis {
   skinType: string;
   confidence: number;
   characteristics: string[];
+  detectedConditions: DetectedCondition[];
+  skipQuestions: string[];
 }
 
 const SkincareWidget = () => {
@@ -32,7 +43,10 @@ const SkincareWidget = () => {
     diet: "",
     water: "",
     concern: "",
-    sleep: ""
+    sleep: "",
+    environment: "",
+    stressLevel: "",
+    routine: ""
   });
 
   // Hide intro text after 5 seconds
@@ -81,7 +95,10 @@ const SkincareWidget = () => {
       diet: "",
       water: "",
       concern: "",
-      sleep: ""
+      sleep: "",
+      environment: "",
+      stressLevel: "",
+      routine: ""
     });
   };
 
