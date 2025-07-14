@@ -230,21 +230,21 @@ export const QuizFlow = ({ skinAnalysis, onComplete }: QuizFlowProps) => {
           {currentQuestion.options.map((option) => (
             <Card 
               key={option.value}
-              className="p-3 md:p-4 cursor-pointer hover:border-primary/50 hover:shadow-card transition-all group min-h-[60px] md:min-h-[auto]"
+              className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-card transition-all group"
               onClick={() => handleAnswer(option.value)}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1 flex-1 min-w-0">
-                  <h4 className="font-medium text-foreground group-hover:text-primary transition-colors text-sm md:text-base leading-tight">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="font-medium text-foreground group-hover:text-primary transition-colors text-sm md:text-base leading-relaxed">
                     {option.label}
                   </h4>
                   {option.description && (
-                    <p className="text-xs md:text-sm text-muted-foreground leading-tight break-words">
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
                       {option.description}
                     </p>
                   )}
                 </div>
-                <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
               </div>
             </Card>
           ))}
