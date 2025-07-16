@@ -31,12 +31,16 @@ export const PhotoCapture = ({ onComplete }: PhotoCaptureProps) => {
 
   const analyzePhoto = () => {
     setIsAnalyzing(true);
-    
-    // Enhanced AI analysis simulation
     setTimeout(() => {
-      const skinTypes = ["oily", "dry", "combination", "normal", "sensitive"];
-      const randomType = skinTypes[Math.floor(Math.random() * skinTypes.length)];
-      
+      let skinType = "normal";
+      let hash = 0;
+      if (uploadedImage) {
+        for (let i = 0; i < uploadedImage.length; i++) {
+          hash = uploadedImage.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const types = ["oily", "dry", "combination", "normal", "sensitive"];
+        skinType = types[Math.abs(hash) % types.length];
+      }
       const characteristics = {
         oily: ["enlarged pores", "T-zone shine", "blackheads visible"],
         dry: ["tight feeling", "flaky patches", "fine lines from dehydration"],
@@ -44,67 +48,139 @@ export const PhotoCapture = ({ onComplete }: PhotoCaptureProps) => {
         normal: ["balanced moisture", "smooth texture", "even tone"],
         sensitive: ["mild redness", "reactive skin", "delicate appearance"]
       };
+      const detectedConditions = [];
+      const skipQuestions = [];
 
-      // Enhanced condition detection
-      const detectedConditions: DetectedCondition[] = [];
-      const skipQuestions: string[] = [];
-
-      // Simulate detection based on skin type
-      if (randomType === "oily") {
+      // Oily
+      if (skinType === "oily") {
         detectedConditions.push({
           type: "oily",
-          severity: "moderate",
-          confidence: 85,
+          severity: hash % 2 === 0 ? "moderate" : "severe",
+          confidence: 90,
           areas: ["T-zone", "nose", "forehead"]
         });
-        skipQuestions.push("oily-concern");
+        if (hash % 3 !== 0) {
+          detectedConditions.push({
+            type: "acne",
+            severity: hash % 4 === 0 ? "severe" : "moderate",
+            confidence: 85,
+            areas: ["forehead", "chin"]
+          });
+        }
       }
-
-      if (randomType === "dry") {
+      // Dry
+      else if (skinType === "dry") {
+        detectedConditions.push({
+          type: "dry",
+          severity: hash % 2 === 0 ? "moderate" : "severe",
+          confidence: 90,
+          areas: ["cheeks", "around eyes"]
+        });
+        if (hash % 5 === 0) {
+          detectedConditions.push({
+            type: "acne",
+            severity: "mild",
+            confidence: 70,
+            areas: ["chin"]
+          });
+        }
+        if (hash % 7 === 0) {
+          detectedConditions.push({
+            type: "sensitive",
+            severity: "moderate",
+            confidence: 80,
+            areas: ["cheeks", "around nose"]
+          });
+        }
+      }
+      // Combination
+      else if (skinType === "combination") {
+        detectedConditions.push({
+          type: "oily",
+          severity: "mild",
+          confidence: 70,
+          areas: ["T-zone"]
+        });
         detectedConditions.push({
           type: "dry",
           severity: "mild",
-          confidence: 80,
-          areas: ["cheeks", "around eyes"]
+          confidence: 70,
+          areas: ["cheeks"]
         });
-        skipQuestions.push("dryness-concern");
+        if (hash % 4 === 0) {
+          detectedConditions.push({
+            type: "acne",
+            severity: "moderate",
+            confidence: 75,
+            areas: ["forehead", "chin"]
+          });
+        }
       }
-
-      // Randomly detect acne
-      if (Math.random() > 0.6) {
-        const severity = ["mild", "moderate", "severe"][Math.floor(Math.random() * 3)] as "mild" | "moderate" | "severe";
+      // Sensitive
+      else if (skinType === "sensitive") {
         detectedConditions.push({
-          type: "acne",
-          severity,
-          confidence: Math.floor(Math.random() * 20) + 75,
-          areas: ["forehead", "chin", "cheeks"].slice(0, Math.floor(Math.random() * 3) + 1)
+          type: "sensitive",
+          severity: hash % 2 === 0 ? "moderate" : "severe",
+          confidence: 90,
+          areas: ["cheeks", "around nose"]
         });
-        if (severity !== "mild") {
-          skipQuestions.push("acne-concern");
+        if (hash % 5 === 0) {
+          detectedConditions.push({
+            type: "dry",
+            severity: "mild",
+            confidence: 70,
+            areas: ["cheeks"]
+          });
+        }
+      }
+      // Normal
+      else {
+        if (hash % 6 === 0) {
+          detectedConditions.push({
+            type: "acne",
+            severity: "mild",
+            confidence: 70,
+            areas: ["forehead"]
+          });
+        }
+        if (hash % 7 === 0) {
+          detectedConditions.push({
+            type: "sensitive",
+            severity: "mild",
+            confidence: 70,
+            areas: ["cheeks"]
+          });
+        }
+        if (hash % 8 === 0) {
+          detectedConditions.push({
+            type: "aging",
+            severity: "mild",
+            confidence: 65,
+            areas: ["around eyes", "forehead"]
+          });
         }
       }
 
-      // Randomly detect sensitivity
-      if (Math.random() > 0.7) {
+      // Always at least one condition for demo
+      if (detectedConditions.length === 0) {
         detectedConditions.push({
-          type: "sensitive",
+          type: skinType,
           severity: "mild",
-          confidence: 70,
-          areas: ["cheeks", "around nose"]
+          confidence: 60,
+          areas: ["face"]
         });
       }
 
-      const analysis: SkinAnalysis = {
-        skinType: randomType,
-        confidence: Math.floor(Math.random() * 20) + 80,
-        characteristics: characteristics[randomType as keyof typeof characteristics],
+      const analysis = {
+        skinType,
+        confidence: 90,
+        characteristics: characteristics[skinType],
         detectedConditions,
         skipQuestions
       };
-
       setIsAnalyzing(false);
       setTimeout(() => onComplete(analysis), 1000);
-    }, 3000);
+    }, 2000);
   };
 
   const triggerFileInput = () => {
@@ -184,7 +260,6 @@ export const PhotoCapture = ({ onComplete }: PhotoCaptureProps) => {
         accept="image/*"
         onChange={handleFileUpload}
         className="hidden"
-        capture="user"
       />
 
       <div className="space-y-2">

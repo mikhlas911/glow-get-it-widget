@@ -7,9 +7,9 @@ import { SkinAnalysis, QuizAnswers } from "./SkincareWidget";
 import { toast } from "sonner";
 
 interface RecommendationsProps {
-  skinAnalysis: SkinAnalysis;
-  quizAnswers: QuizAnswers;
+  quizAnswers: any;
   onClose: () => void;
+  onPackageSelect?: (packageId: string) => void;
 }
 
 interface Product {
@@ -205,175 +205,187 @@ const getProductRecommendations = (skinAnalysis: SkinAnalysis, quizAnswers: Quiz
   return baseProducts;
 };
 
-export const Recommendations = ({ skinAnalysis, quizAnswers, onClose }: RecommendationsProps) => {
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const recommendations = getProductRecommendations(skinAnalysis, quizAnswers);
+// Minimalist product combos by skin type
+const combos = {
+  oily: {
+    name: "Oily Skincare Combo",
+    products: [
+      {
+        name: "Salicylic Acid + LHA 2% Cleanser",
+        desc: "Acne, Breakouts & Oiliness"
+      },
+      {
+        name: "Salicylic Acid 2% Face Serum",
+        desc: "Acne, Oily Skin, Blackheads & Irritation"
+      },
+      {
+        name: "Vitamin B5 10% Moisturizer",
+        desc: "Damaged Barrier, Oily & Dehydrated"
+      }
+    ]
+  },
+  dry: {
+    name: "Dry Skincare Combo",
+    products: [
+      {
+        name: "Oat Extract 6% Gentle Cleanser",
+        desc: "Dry, Dehydrated, Sensitive Skin"
+      },
+      {
+        name: "Vitamin B5 10% Moisturizer",
+        desc: "Damaged Barrier, Oily & Dehydrated"
+      },
+      {
+        name: "Hyaluronic + PGA 2% Face Serum",
+        desc: "Dry, Dehydrated & Tightened Skin"
+      }
+    ]
+  },
+  pigmentation: {
+    name: "Anti Pigmentation Combo",
+    products: [
+      {
+        name: "Alpha Arbutin 2% Face Serum",
+        desc: "Hyperpigmentation, Tanning & Sunspot"
+      },
+      {
+        name: "Vitamin C + E + Ferulic 16% Face Serum",
+        desc: "Spots, Uneven Tone & Dull Skin"
+      },
+      {
+        name: "Tranexamic 3% Face Serum",
+        desc: "Acne Scars, Melasma, PIE"
+      }
+    ]
+  },
+  dull: {
+    name: "Dullness & Texture Combo",
+    products: [
+      {
+        name: "Alpha Lipoic + Glycolic 7% Cleanser",
+        desc: "Dull & Rough Skin, Uneven Tone"
+      },
+      {
+        name: "Vitamin C 10% Face Serum",
+        desc: "Dullness, Spots & Loss of Elasticity"
+      },
+      {
+        name: "Glycolic Acid 8% Exfoliating Liquid",
+        desc: "Dull Skin, Uneven Tone & Texture"
+      }
+    ]
+  },
+  aging: {
+    name: "Anti Aging Combo",
+    products: [
+      {
+        name: "Retinol 0.3% Face Serum",
+        desc: "Fine Lines, Wrinkles & Loss of Elasticity"
+      },
+      {
+        name: "Vitamin K + Retinal 1% Eye Cream",
+        desc: "Dark Circles, Fine Lines & Eye Puffiness"
+      },
+      {
+        name: "Anti Aging Skin Care Kit",
+        desc: "Combo: Fine Lines & Wrinkles"
+      }
+    ]
+  },
+  sensitive: {
+    name: "Sensitive Skin Combo",
+    products: [
+      {
+        name: "Oat Extract 6% Gentle Cleanser",
+        desc: "Dry, Dehydrated, Sensitive Skin"
+      },
+      {
+        name: "Niacinamide 5% Face Serum",
+        desc: "Acne Marks, Irritated & Damaged Skin"
+      },
+      {
+        name: "Polyhydroxy Acid (PHA) 3% Face Toner",
+        desc: "Enlarged Pores & Dehydrated Skin"
+      }
+    ]
+  }
+};
 
-  const handleSaveResults = () => {
-    toast.success("Skincare routine saved! Check your downloads.");
-  };
+function getComboKeyFromQuiz(quizAnswers: any) {
+  // Map quiz answers to combo key
+  if (quizAnswers.concern === "acne" || quizAnswers.skinType === "oily") return "oily";
+  if (quizAnswers.concern === "dark-spots" || quizAnswers.concern === "pigmentation") return "pigmentation";
+  if (quizAnswers.concern === "tan" || quizAnswers.concern === "dullness") return "dull";
+  if (quizAnswers.concern === "aging") return "aging";
+  if (quizAnswers.skinType === "dry") return "dry";
+  if (quizAnswers.skinType === "sensitive") return "sensitive";
+  return "dry";
+}
 
-  const handleShareResults = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: "My Personalized Skincare Routine",
-        text: `I just got my personalized skincare routine for ${skinAnalysis.skinType} skin!`,
-        url: window.location.href
-      });
-    } else {
-      toast.success("Sharing link copied to clipboard!");
-    }
-  };
+const comboLinks: Record<string, string> = {
+  oily: "https://beminimalist.co/products/anti-acne-kit",
+  dry: "https://beminimalist.co/collections/kits/products/dry-skincare-kit",
+  pigmentation: "https://beminimalist.co/collections/kits/products/anti-pigmentation-kit",
+  dull: "https://beminimalist.co/collections/kits/products/dry-skincare-kit",
+  aging: "https://beminimalist.co/collections/kits/products/anti-aging-kit"
+};
 
-  const toggleProductSelection = (productId: string) => {
-    setSelectedProducts(prev => 
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
-  const totalPrice = recommendations
-    .filter(p => selectedProducts.includes(p.id))
-    .reduce((sum, p) => sum + p.price, 0);
+const Recommendations = ({ quizAnswers, onClose, onPackageSelect }: RecommendationsProps) => {
+  const comboKey = getComboKeyFromQuiz(quizAnswers);
+  const combo = combos[comboKey];
+  const viewProductLink = comboLinks[comboKey];
 
   return (
     <div className="p-6 space-y-6">
-      {/* Results Header */}
-      <div className="text-center space-y-3">
-        <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center">
-          <Sparkles className="w-8 h-8 text-primary-foreground" />
-        </div>
-        <h3 className="text-xl font-semibold text-foreground">
-          Your Personalized Routine
-        </h3>
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-sm">
-            Based on your {skinAnalysis.skinType} skin type
-          </p>
-          {skinAnalysis.detectedConditions.length > 0 && (
-            <div className="flex flex-wrap gap-1 justify-center">
-              {skinAnalysis.detectedConditions.map((condition, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {condition.severity} {condition.type}
-                </Badge>
-              ))}
-            </div>
-          )}
-          <p className="text-muted-foreground text-xs">
-            Tailored for your lifestyle and environment
-          </p>
+      {/* Quiz Result */}
+      <div className="mb-4 p-4 rounded-lg bg-gradient-soft border text-center">
+        <div className="font-semibold text-base mb-1">Results</div>
+        <div className="text-sm text-foreground capitalize">
+          <span>Concern: <b>{quizAnswers.concern?.replace(/-/g, ' ')}</b></span><br/>
+          <span>Skin Type: <b>{quizAnswers.skinType}</b></span>
         </div>
       </div>
-
-      {/* Product Recommendations */}
+      <h2 className="text-xl font-bold text-center mb-4">Your Recommended Minimalist Combo</h2>
       <div className="space-y-4">
-        <h4 className="font-medium text-foreground">Recommended Products</h4>
-        
-        {recommendations.map((product) => (
-          <Card 
-            key={product.id}
-            className={`p-4 transition-all cursor-pointer ${
-              selectedProducts.includes(product.id)
-                ? "border-primary bg-accent/20"
-                : "hover:border-primary/50"
-            }`}
-            onClick={() => toggleProductSelection(product.id)}
-          >
-            <div className="flex gap-4">
-              <img 
-                src={product.image}
-                alt={product.name}
-                className="w-16 h-16 rounded-lg object-cover"
-              />
-              <div className="flex-1 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h5 className="font-medium text-foreground">{product.name}</h5>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {product.type}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">${product.price}</p>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs text-muted-foreground">
-                        {product.rating}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  {product.description}
-                </p>
-                
-                <div className="flex flex-wrap gap-1">
-                  {product.benefits.map((benefit, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {benefit}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Cart Summary */}
-      {selectedProducts.length > 0 && (
-        <Card className="p-4 bg-gradient-soft">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-medium text-foreground">
-              Selected Items ({selectedProducts.length})
-            </span>
-            <span className="font-semibold text-foreground">
-              ${totalPrice}
-            </span>
+        {combo.products.map((product, idx) => (
+          <div key={idx} className="p-4 border rounded-lg bg-card shadow-sm">
+            <div className="font-semibold text-lg">{product.name}</div>
+            <div className="text-sm text-muted-foreground">{product.desc}</div>
           </div>
-          <Button className="w-full" size="lg">
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            Add to Cart
-          </Button>
-        </Card>
-      )}
-
-      {/* Action Buttons */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" onClick={handleSaveResults}>
-            <Download className="w-4 h-4 mr-2" />
-            Save Results
-          </Button>
-          <Button variant="outline" onClick={handleShareResults}>
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-        </div>
-        
-        <Button 
-          variant="ghost" 
-          className="w-full"
-          onClick={onClose}
+        ))}
+        {/* View Product Button after 3rd product */}
+        {viewProductLink && (
+          <a
+            href={viewProductLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex justify-center"
+          >
+            <button
+              className="-mt-3 mb-2 px-6 py-3 rounded-full bg-neutral-800 text-white font-semibold shadow hover:bg-neutral-900 transition"
+              style={{ minWidth: 160 }}
+            >
+              View Product
+            </button>
+          </a>
+        )}
+      </div>
+      {onPackageSelect && (
+        <button
+          className="w-full mt-2 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition"
+          onClick={() => onPackageSelect(comboKey)}
         >
-          Start New Analysis
-        </Button>
-        
-        <Button variant="outline" className="w-full">
-          <ExternalLink className="w-4 h-4 mr-2" />
-          Explore More Products
-        </Button>
-      </div>
-
-      {/* Disclaimer */}
-      <div className="text-center">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Results are based on AI analysis and may vary. Consult a dermatologist for 
-          specific skin concerns. Patch test new products before full use.
-        </p>
-      </div>
+          Build My Routine
+        </button>
+      )}
+      <button
+        className="w-full mt-4 py-2 border rounded-lg text-primary font-medium hover:bg-primary/5"
+        onClick={onClose}
+      >
+        Close
+      </button>
     </div>
   );
 };
+
+export { Recommendations };

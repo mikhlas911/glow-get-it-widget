@@ -1,262 +1,333 @@
-import { useState, useMemo } from "react";
-import { ChevronRight, Heart, Droplets, Moon, Apple, Shield, MapPin, Brain } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { SkinAnalysis, QuizAnswers } from "./SkincareWidget";
+import { useState } from "react";
 
 interface QuizFlowProps {
-  skinAnalysis: SkinAnalysis;
-  onComplete: (answers: QuizAnswers) => void;
+  onComplete: (answers: any) => void;
 }
 
-interface QuizQuestion {
-  id: keyof QuizAnswers;
-  question: string;
-  icon: React.ReactNode;
-  options: { value: string; label: string; description?: string }[];
-}
-
-const allQuestions: QuizQuestion[] = [
+const skinConcerns = [
   {
-    id: "diet",
-    question: "How would you describe your diet?",
-    icon: <Apple className="w-5 h-5" />,
-    options: [
-      { value: "healthy", label: "Balanced Diet", description: "Lots of fruits, vegetables, and water" },
-      { value: "balanced", label: "Mixed Diet", description: "Balance of healthy and indulgent foods" },
-      { value: "needs-improvement", label: "Needs Improvement", description: "Often processed foods, low water intake" }
-    ]
+    value: "acne",
+    label: "Acne",
+    image: "/acne q11.png"
   },
   {
-    id: "water",
-    question: "How much water do you drink daily?",
-    icon: <Droplets className="w-5 h-5" />,
-    options: [
-      { value: "high", label: "More than 2L", description: "8+ glasses per day" },
-      { value: "medium", label: "1-2L", description: "4-8 glasses per day" },
-      { value: "low", label: "Less than 1L", description: "Fewer than 4 glasses" }
-    ]
+    value: "dark-spots",
+    label: "Dark Spots",
+    image: "/darkspots.png"
   },
   {
-    id: "concern",
-    question: "What's your main skin concern?",
-    icon: <Heart className="w-5 h-5" />,
-    options: [
-      { value: "acne", label: "Acne & Breakouts", description: "Pimples, blackheads, blemishes" },
-      { value: "dryness", label: "Dryness", description: "Tight, flaky, or rough skin" },
-      { value: "aging", label: "Aging", description: "Fine lines, wrinkles, loss of elasticity" },
-      { value: "sensitivity", label: "Sensitivity", description: "Redness, irritation, reactions" },
-      { value: "dullness", label: "Dullness", description: "Lack of glow, uneven tone" }
-    ]
+    value: "tan",
+    label: "Tan",
+    image: "/tan.png"
   },
   {
-    id: "sleep",
-    question: "How's your sleep quality?",
-    icon: <Moon className="w-5 h-5" />,
-    options: [
-      { value: "good", label: "Good Quality", description: "7-9 hours, wake up refreshed" },
-      { value: "fair", label: "Fair Quality", description: "6-7 hours, sometimes tired" },
-      { value: "poor", label: "Poor Quality", description: "Less than 6 hours, often tired" }
-    ]
-  },
-  {
-    id: "stressLevel",
-    question: "How would you rate your stress level?",
-    icon: <Brain className="w-5 h-5" />,
-    options: [
-      { value: "low", label: "Low Stress", description: "Generally calm and relaxed" },
-      { value: "moderate", label: "Moderate Stress", description: "Some daily pressures" },
-      { value: "high", label: "High Stress", description: "Often feeling overwhelmed" }
-    ]
-  },
-  {
-    id: "environment",
-    question: "What's your daily environment like?",
-    icon: <MapPin className="w-5 h-5" />,
-    options: [
-      { value: "clean", label: "Clean Environment", description: "Minimal pollution, good air quality" },
-      { value: "moderate", label: "Urban Environment", description: "City living, some pollution" },
-      { value: "harsh", label: "Harsh Environment", description: "High pollution, extreme weather" }
-    ]
-  },
-  {
-    id: "routine",
-    question: "How consistent is your skincare routine?",
-    icon: <Shield className="w-5 h-5" />,
-    options: [
-      { value: "consistent", label: "Very Consistent", description: "Daily morning and evening routine" },
-      { value: "sometimes", label: "Sometimes", description: "Regular but occasionally skip" },
-      { value: "minimal", label: "Minimal Routine", description: "Basic cleansing only" }
-    ]
+    value: "aging",
+    label: "Aging",
+    image: "/aging1.png"
   }
 ];
 
-export const QuizFlow = ({ skinAnalysis, onComplete }: QuizFlowProps) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
-  
-  // Smart question filtering based on photo analysis
-  const filteredQuestions = useMemo(() => {
-    return allQuestions.filter(question => {
-      // Skip concern questions for detected conditions
-      if (question.id === "concern") {
-        const hasStrongDetection = skinAnalysis.detectedConditions.some(
-          condition => condition.confidence > 80 && condition.severity !== "mild"
-        );
-        
-        // If we detected strong conditions, filter out those options
-        if (hasStrongDetection) {
-          const detectedTypes = skinAnalysis.detectedConditions
-            .filter(c => c.confidence > 80)
-            .map(c => c.type);
-          
-          const filteredOptions = question.options.filter(option => {
-            if (option.value === "acne" && detectedTypes.includes("acne")) return false;
-            if (option.value === "dryness" && detectedTypes.includes("dry")) return false;
-            return true;
-          });
-          
-          // If most options are filtered out, skip the question entirely
-          if (filteredOptions.length <= 1) return false;
-          
-          // Return modified question with filtered options
-          return { ...question, options: filteredOptions };
-        }
-      }
-      
-      return true;
-    });
-  }, [skinAnalysis]);
-  
-  const currentQuestion = filteredQuestions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / filteredQuestions.length) * 100;
-  const isLastQuestion = currentQuestionIndex === filteredQuestions.length - 1;
+const acneTypes = [
+  { value: "large-pus", label: "Large pus filled" },
+  { value: "red-painful", label: "Red, painful and swollen" },
+  { value: "small-bumps", label: "Small painful bumps" },
+  { value: "whiteheads-blackheads", label: "Many whiteheads/blackheads" }
+];
+const acneCount = [
+  { value: "0-2", label: "0-2" },
+  { value: "2-5", label: "2-5" },
+  { value: "5+", label: "More than 5" }
+];
+const skinTypes = [
+  { value: "dry", label: "Dry" },
+  { value: "oily", label: "Oily" },
+  { value: "normal", label: "Normal" },
+  { value: "sensitive", label: "Sensitive" }
+];
+const exercise = [
+  { value: "regularly", label: "Regularly" },
+  { value: "sometimes", label: "Sometimes" },
+  { value: "rarely", label: "Rarely" }
+];
+const sleep = [
+  { value: "sound", label: "Sound sleep" },
+  { value: "moderate", label: "Moderate sleep" },
+  { value: "disturbed", label: "Disturbed sleep" }
+];
+const environment = [
+  { value: "clean", label: "Clean" },
+  { value: "urban", label: "Urban" },
+  { value: "industrial", label: "Industrial" }
+];
+const stress = [
+  { value: "high", label: "High" },
+  { value: "moderate", label: "Moderate" },
+  { value: "low", label: "Low" }
+];
+const ageGroups = [
+  { value: "12-18", label: "12-18" },
+  { value: "19-25", label: "19-25" },
+  { value: "26-35", label: "26-35" },
+  { value: "36-45", label: "36-45" },
+  { value: "45+", label: "45+" }
+];
+const genders = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" }
+];
 
-  const handleAnswer = (value: string) => {
-    const newAnswers = { ...answers, [currentQuestion.id]: value };
+const steps = [
+  "concern",
+  "acneType",
+  "acneCount",
+  "skinType",
+  "exercise",
+  "sleep",
+  "environment",
+  "stress",
+  "age",
+  "gender"
+];
+
+export default function QuizFlow({ onComplete }: QuizFlowProps) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<any>({});
+
+  // Determine if we should show acne sub-questions
+  const showAcneSub = answers.concern === "acne";
+  const effectiveSteps = steps.filter(
+    (s) =>
+      s !== "acneType" && s !== "acneCount" || (showAcneSub || (s !== "acneType" && s !== "acneCount"))
+  );
+  // Insert acne sub-questions if needed
+  let displaySteps = steps.slice();
+  if (!showAcneSub) {
+    displaySteps = displaySteps.filter((s) => s !== "acneType" && s !== "acneCount");
+  }
+
+  const current = displaySteps[step];
+  const isLast = step === displaySteps.length - 1;
+
+  const handleSelect = (field: string, value: string) => {
+    const newAnswers = { ...answers, [field]: value };
     setAnswers(newAnswers);
-
-    if (isLastQuestion) {
-      // Complete the quiz
       setTimeout(() => {
-        onComplete(newAnswers as QuizAnswers);
-      }, 500);
+      if (isLast) {
+        onComplete(newAnswers);
     } else {
-      // Move to next question
-      setTimeout(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setStep(step + 1);
+      }
       }, 300);
-    }
+  };
+
+  // Accent color
+  const accent = '#FFB300';
+  const selectedStyle = {
+    borderColor: accent,
+    backgroundColor: '#FFF8E1',
+    color: '#222'
+  };
+  const headingStyle = {
+    color: accent
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      {/* Skin Analysis Result */}
-      <Card className="p-3 md:p-4 bg-gradient-soft border-accent">
-        <div className="text-center space-y-2">
-          <h3 className="font-semibold text-foreground capitalize text-sm md:text-base">
-            {skinAnalysis.skinType} Skin Detected
-          </h3>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            {skinAnalysis.confidence}% confidence
-          </p>
-          
-          {/* Show detected conditions */}
-          {skinAnalysis.detectedConditions.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Detected conditions:</p>
-              <div className="flex flex-wrap gap-1 justify-center">
-                {skinAnalysis.detectedConditions.map((condition, index) => (
-                  <span 
-                    key={index}
-                    className="text-xs bg-background px-2 py-1 rounded-full text-muted-foreground capitalize"
-                  >
-                    {condition.severity} {condition.type}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex flex-wrap gap-1 justify-center">
-            {skinAnalysis.characteristics.map((char, index) => (
-              <span 
-                key={index}
-                className="text-xs bg-background px-2 py-1 rounded-full text-muted-foreground"
+    <div className="p-4 space-y-6 bg-white rounded-xl shadow-lg border border-gray-100">
+      <h3 className="text-lg font-bold text-center mb-2" style={headingStyle}>Personalize Your Skincare</h3>
+      {current === "concern" && (
+        <div>
+          <div className="font-medium mb-2 text-center">Choose your skin concern</div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {skinConcerns.map((c) => (
+              <button
+                key={c.value}
+                className={`flex flex-col items-center border-2 rounded-lg p-3 w-28 h-32 transition-colors duration-200 focus:outline-none`}
+                style={answers.concern === c.value ? selectedStyle : {}}
+                onClick={() => handleSelect("concern", c.value)}
+                onMouseOver={e => { if (!(answers.concern === c.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.concern === c.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
               >
-                {char}
-              </span>
+                <img src={c.image} alt={c.label} className="w-12 h-12 mb-2 object-contain" />
+                <span className="font-medium mb-1">{c.label}</span>
+              </button>
             ))}
           </div>
         </div>
-      </Card>
-
-      {/* Smart Skip Notice */}
-      {skinAnalysis.detectedConditions.some(c => c.confidence > 80) && (
-        <div className="bg-primary/10 p-3 rounded-lg">
-          <p className="text-xs text-muted-foreground text-center">
-            We've detected your skin concerns from the photo, so we'll focus on lifestyle factors
-          </p>
+      )}
+      {current === "acneType" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How would you describe your acne?</div>
+          <div className="flex flex-col gap-2">
+            {acneTypes.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.acneType === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("acneType", o.value)}
+                onMouseOver={e => { if (!(answers.acneType === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.acneType === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
-
-      {/* Progress */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs md:text-sm">
-          <span className="text-muted-foreground">
-            Question {currentQuestionIndex + 1} of {filteredQuestions.length}
-          </span>
-          <span className="text-muted-foreground">
-            {Math.round(progress)}%
-          </span>
-        </div>
-        <Progress value={progress} className="h-1.5 md:h-2" />
-      </div>
-
-      {/* Question */}
-      <div className="space-y-4">
-        <div className="text-center space-y-3">
-          <div className="mx-auto w-10 h-10 md:w-12 md:h-12 bg-accent rounded-full flex items-center justify-center text-accent-foreground">
-            {currentQuestion.icon}
+      {current === "acneCount" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How many active acne do you have?</div>
+          <div className="flex flex-col gap-2">
+            {acneCount.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.acneCount === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("acneCount", o.value)}
+                onMouseOver={e => { if (!(answers.acneCount === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.acneCount === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
           </div>
-          <h3 className="text-base md:text-lg font-semibold text-foreground px-2">
-            {currentQuestion.question}
-          </h3>
         </div>
-
-        {/* Answer Options - Mobile Optimized */}
-        <div className="space-y-2 md:space-y-3">
-          {currentQuestion.options.map((option) => (
-            <Card 
-              key={option.value}
-              className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-card transition-all group"
-              onClick={() => handleAnswer(option.value)}
+      )}
+      {current === "skinType" && (
+        <div>
+          <div className="font-medium mb-2 text-center">What's your skin type?</div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {skinTypes.map((o) => (
+              <button
+                key={o.value}
+                className={`w-28 h-16 border-2 rounded-lg flex items-center justify-center font-medium transition-colors duration-200 focus:outline-none`}
+                style={answers.skinType === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("skinType", o.value)}
+                onMouseOver={e => { if (!(answers.skinType === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.skinType === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "exercise" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How often do you exercise?</div>
+          <div className="flex flex-col gap-2">
+            {exercise.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.exercise === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("exercise", o.value)}
+                onMouseOver={e => { if (!(answers.exercise === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.exercise === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "sleep" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How are your sleeping patterns?</div>
+          <div className="flex flex-col gap-2">
+            {sleep.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.sleep === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("sleep", o.value)}
+                onMouseOver={e => { if (!(answers.sleep === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.sleep === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "environment" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How is your environment?</div>
+          <div className="flex flex-col gap-2">
+            {environment.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.environment === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("environment", o.value)}
+                onMouseOver={e => { if (!(answers.environment === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.environment === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "stress" && (
+        <div>
+          <div className="font-medium mb-2 text-center">How is your stress levels?</div>
+          <div className="flex flex-col gap-2">
+            {stress.map((o) => (
+              <button
+                key={o.value}
+                className={`w-full p-3 border-2 rounded-lg transition-colors duration-200 focus:outline-none`}
+                style={answers.stress === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("stress", o.value)}
+                onMouseOver={e => { if (!(answers.stress === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.stress === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "age" && (
+        <div>
+          <div className="font-medium mb-2 text-center">Your age group?</div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {ageGroups.map((o) => (
+              <button
+                key={o.value}
+                className={`w-24 h-12 border-2 rounded-lg flex items-center justify-center font-medium transition-colors duration-200 focus:outline-none`}
+                style={answers.age === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("age", o.value)}
+                onMouseOver={e => { if (!(answers.age === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.age === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {current === "gender" && (
+        <div>
+          <div className="font-medium mb-2 text-center">Your Gender?</div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {genders.map((o) => (
+          <button
+                key={o.value}
+                className={`w-24 h-12 border-2 rounded-lg flex items-center justify-center font-medium transition-colors duration-200 focus:outline-none`}
+                style={answers.gender === o.value ? selectedStyle : {}}
+                onClick={() => handleSelect("gender", o.value)}
+                onMouseOver={e => { if (!(answers.gender === o.value)) e.currentTarget.style.borderColor = accent; }}
+                onMouseOut={e => { if (!(answers.gender === o.value)) e.currentTarget.style.borderColor = '#E5E7EB'; }}
             >
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0 space-y-1">
-                  <h4 className="font-medium text-foreground group-hover:text-primary transition-colors text-sm md:text-base leading-relaxed">
-                    {option.label}
-                  </h4>
-                  {option.description && (
-                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                      {option.description}
-                    </p>
-                  )}
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
-              </div>
-            </Card>
+                {o.label}
+          </button>
           ))}
-        </div>
       </div>
-
-      {/* Helper Text */}
-      <div className="text-center px-4">
-        <p className="text-xs text-muted-foreground">
-          Your answers help us create the perfect skincare routine for you
-        </p>
+        </div>
+      )}
+      <div className="text-xs text-muted-foreground text-center">
+        Question {step + 1} of {displaySteps.length}
       </div>
     </div>
   );
-};
+}
